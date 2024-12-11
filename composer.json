@@ -11,6 +11,9 @@
         "source": "https://github.com/tekintian/sentry9-php"
     },
     "version":"2.0",
+    "require": {
+        "php": "^5.3|^7.0|^8.0"
+    },
     "autoload": {
         "psr-4": {
             "Sentry9\\": "src"
