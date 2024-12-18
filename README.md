@@ -49,7 +49,7 @@ $sentry->captureMessage("Hello message from Sentry client!");
 ~~~
 
 
-## thinkphp8 sentry9配置步骤
+## thinkphp5/ tp6 sentry9配置步骤
 tp8默认使用的就是composer来管理第三方包, 所以直接使用 composer 来安装 sentry9 即可.
 
 1. 安装 sentry9 包
@@ -72,9 +72,9 @@ return [
 		'is_enable' => TRUE,
 		// Sentry 项目配置中的客户端URL 
 		// sentry8
-		//'client_url' => 'http://xxxxxxxxxxxxxxxxxxxxxxxxxx:xxxxxxxxxxxxxxxxxxxxxxxxxx@sentry.yunnan.ws/1',
+		//'client_url' => 'http://xxxxxxxxxxxxxxxxxxxxxxxxxx:xxxxxxxxxxxxxxxxxxxxxxxxxx@sentry.tekin.cn/1',
 		// sentry9
-		'client_url' => 'http://xxxxxxxxxxxxxxxxxxxxxxxxxx@sentry.yunnan.ws/1',
+		'client_url' => 'http://xxxxxxxxxxxxxxxxxxxxxxxxxx@sentry.tekin.cn/1',
 	],
 ]
 ~~~
@@ -94,6 +94,113 @@ if (config('sentry9.is_enable')) {
 }
 
 ~~~
+
+## thinkphp8 tp8 sentry9配置步骤
+tp8的默认使用的就是composer来管理第三方包, 所以直接使用 composer 来安装 sentry9 即可.
+同时tp8和tp5的配置方式不太一样, 这里我们直接使用自定义异常类来处理Sentry的异常.
+
+1. 安装 sentry9 包
+~~~shell
+# 安装 sentry9 包
+composer require "tekintian/sentry9-php"
+~~~
+2. 创建自定义异常类
+位置 app\common\exception 目录下创建 Sentry.php 文件
+~~~php
+<?php
+namespace app\common\exception;
+
+use think\exception\Handle;
+use think\exception\HttpException;
+use think\exception\ValidateException;
+use think\Response;
+use Throwable;
+use Sentry9\Client;
+
+class Sentry extends Handle
+{
+    /**
+     * @var Client
+     */
+    private $sentry;
+    /**
+     * 获取Sentry异常处理实例
+     *
+     * @return Client
+     */
+    public function getSentry(): Client {
+        if (is_null($this->sentry)) {
+            // 初始化Sentry
+            $dsn = config('app.sentry_dsn');
+            $this->sentry = \Sentry9\Sentry::listen($dsn);
+        }
+        return $this->sentry;
+    }
+    /**
+     * 记录异常信息（包括日志或者其它方式记录）
+     *
+     * @access public
+     * @param Throwable $exception
+     * @return void
+     */
+    public function render($request, Throwable $e): Response
+    {
+        // 获取Sentry异常处理实例
+        $sentry = $this->getSentry();
+         // 记录异常信息  放在这里就是记录所有的异常信息, 如果放在 if里面的话就可以只记录指定类型的异常信息
+        $sentry->captureException($e);
+
+        // 参数验证错误
+        if ($e instanceof ValidateException) {
+             // 记录错误日志
+            return json($e->getError(), 422);
+        }
+
+        // 请求异常
+        if ($e instanceof HttpException && $request->isAjax()) {
+           
+
+            return response($e->getMessage(), $e->getStatusCode());
+        }
+
+        // 其他错误交给系统处理
+        return parent::render($request, $e);
+    }
+
+}
+~~~
+
+3. 在app/provider.php中加载自定义异常类
+就是将 'think\exception\Handle'  => '\\app\\common\\exception\\Sentry', 添加到Provider中 
+这里就会自动覆盖tp8的异常处理类.
+~~~php
+<?php
+use app\ExceptionHandle;
+use app\Request;
+
+// 容器Provider定义文件
+return [
+    'think\Request'          => Request::class,
+    'think\exception\Handle' => ExceptionHandle::class,
+     // 绑定自定义异常处理handle类 app\common\exception
+    'think\exception\Handle'  => '\\app\\common\\exception\\Sentry',
+];
+~~~
+
+
+4. 修改tp8配置文件 config/app.php,增加SENTRY配置项目
+在config/app.php文件的最后增加sentry9配置项目
+~~~php
+	// sentry DSN配置
+    'sentry_dsn'   => env('SENTRY_DSN', 'https://xxxxxxx@sentry.tekin.cn/2'),
+~~~
+
+5. 在项目根目录的.env文件中增加SENTRY_DSN 配置
+~~~
+SENTRY_DSN = https://xxxxxxx@sentry.tekin.cn/2
+~~~
+
+到此我们就完成了thinkphp8中的sentry9的配置, 是不是很简单.
 
 
 ## sentry9服务端docker部署

@@ -10,7 +10,7 @@
         "forum": "https://github.com/tekintian/sentry9-php",
         "source": "https://github.com/tekintian/sentry9-php"
     },
-    "version":"2.0.0",
+    "version":"2.0.1",
     "require": {
         "php": "^5.3|^7.0|^8.0"
     },
