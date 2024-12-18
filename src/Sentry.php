@@ -19,18 +19,27 @@ error_reporting(E_ALL ^ E_NOTICE);
  */
 class Sentry {
 
+	/** @var Client */
+	private static $client;
+
 	/**
-	 * sentry 日志监听
+	 * 实例化sentry 日志监听 同时返回 Client客户端实例
 	 * @param  [type] $client_url [Sentry 项目配置中的DSN/客户端URL]
-	 * @return ErrorHandler             [description]
+	 * @return Client             [Sentry客户端实例]
 	 */
-	static public function listen($client_url) : ErrorHandler {
-		// 实例化sentry raven client
-		$client = new Client($client_url);
-		$sentry = new ErrorHandler($client);
-		$sentry->registerExceptionHandler();
-		$sentry->registerErrorHandler();
-		$sentry->registerShutdownFunction();
-		return $sentry;
+	static public function listen($client_url) : Client {
+		if(is_null(self::$client)){
+			// 实例化sentry raven client
+			self::$client = new Client($client_url);
+
+			// 异常处理对象实例化
+			$handler = new ErrorHandler(self::$client);
+			// 注册异常处理
+			$handler->registerExceptionHandler();
+			$handler->registerErrorHandler();
+			$handler->registerShutdownFunction();
+		}
+		
+		return self::$client;
 	}
 }

@@ -35,6 +35,17 @@ require __DIR__ . '/vendor/autoload.php';
 // 注意这里的位置需要再异常代码之前加载
 $sentry = \Sentry9\Sentry::listen('https://abc4e0db14bd4d599290b783ce9ddebe@sentry.tekin.cn/2');
 
+try {
+    // 这里是你的业务代码
+    // 比如:
+    $a = 1 / 0;
+} catch (Exception $e) {
+    // 记录异常信息
+    $sentry->captureException($e);
+}
+
+// 手动记录异常信息
+$sentry->captureMessage("Hello message from Sentry client!");
 ~~~
 
 
